@@ -1,0 +1,2035 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ant Defense - Cuộc Chiến Phòng Thủ Tộc Kiến</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;600;700&family=Play:wght@400;700&display=swap');
+        
+        body {
+            font-family: 'Play', sans-serif;
+            background-color: #090d16;
+            color: #f8fafc;
+            user-select: none;
+            overflow: hidden;
+        }
+
+        .mono {
+            font-family: 'Roboto Mono', monospace;
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 3px;
+        }
+
+        canvas {
+            touch-action: none;
+            cursor: pointer;
+        }
+
+        .tower-card {
+            transition: all 0.2s ease;
+        }
+        .tower-card:hover:not(.disabled) {
+            transform: translateY(-2px);
+            border-color: #38bdf8;
+            box-shadow: 0 4px 14px rgba(56, 189, 248, 0.25);
+        }
+        .tower-card.selected {
+            border-color: #eab308;
+            background-color: #1e293b;
+            box-shadow: 0 0 15px rgba(234, 179, 8, 0.35);
+        }
+        .tower-card.disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+            filter: grayscale(0.8);
+        }
+
+        .gradient-text {
+            background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 50%, #d97706 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .menu-bg {
+            background: radial-gradient(circle at center, #1e293b 0%, #0f172a 70%, #020617 100%);
+        }
+
+        html,
+        body {
+            min-width: 320px;
+            min-height: 100%;
+        }
+
+        body {
+            min-height: 100vh;
+            min-height: 100dvh;
+        }
+
+        #gameCanvas {
+            display: block;
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+
+        #main-menu > div,
+        #confirm-exit-modal > div,
+        #game-modal > div {
+            max-height: calc(100dvh - 2rem);
+            overflow-y: auto;
+        }
+
+        @media (max-width: 767px) {
+            body {
+                width: 100%;
+                height: auto;
+                overflow-x: hidden;
+                overflow-y: auto;
+            }
+
+            body > header.flex {
+                display: grid;
+                grid-template-columns: minmax(0, 1fr) auto;
+                grid-template-rows: auto auto;
+                gap: 0.5rem;
+                padding: 0.5rem;
+            }
+
+            body > header > div:first-child {
+                min-width: 0;
+            }
+
+            body > header > div:first-child p {
+                font-size: 9px;
+            }
+
+            body > header > div:nth-child(2) {
+                grid-column: 1 / -1;
+                grid-row: 2;
+                display: grid;
+                grid-template-columns: repeat(4, minmax(0, 1fr));
+                gap: 0.35rem;
+                width: 100%;
+            }
+
+            body > header > div:nth-child(2) > div {
+                justify-content: center;
+                gap: 0.35rem;
+                padding: 0.35rem 0.25rem;
+                min-width: 0;
+            }
+
+            body > header > div:nth-child(2) > div > i {
+                font-size: 0.85rem;
+            }
+
+            body > header > div:nth-child(2) > div > div > span:first-child,
+            body > header > div:nth-child(2) > div:last-child {
+                display: none;
+            }
+
+            body > header > div:nth-child(2) > div > div > span:last-child {
+                font-size: 0.75rem;
+            }
+
+            body > header > div:nth-child(3) {
+                grid-column: 2;
+                grid-row: 1;
+                gap: 0.25rem;
+            }
+
+            body > header > div:nth-child(3) > button {
+                min-height: 40px;
+                padding-left: 0.55rem;
+                padding-right: 0.55rem;
+            }
+
+            #btn-start-wave {
+                gap: 0.25rem;
+            }
+
+            #btn-start-wave span {
+                font-size: 10px;
+            }
+
+            body > div.flex-1.flex {
+                display: flex;
+                flex: none;
+                flex-direction: column;
+                overflow: visible;
+            }
+
+            body > div.flex-1.flex > div:first-child {
+                width: 100%;
+                min-height: 0;
+                padding: 0.5rem;
+                overflow: visible;
+            }
+
+            body > div.flex-1.flex > div:first-child > .relative.w-full {
+                width: 100%;
+                height: auto;
+                aspect-ratio: 2 / 1;
+                flex: none;
+            }
+
+            #auto-wave-bar {
+                position: fixed;
+                bottom: 0.5rem;
+                width: calc(100% - 1rem);
+                max-width: 28rem;
+                justify-content: center;
+                gap: 0.35rem;
+                padding: 0.5rem 0.65rem;
+                border-radius: 0.85rem;
+                flex-wrap: wrap;
+            }
+
+            #auto-wave-bar > span:last-child {
+                width: 100%;
+                text-align: center;
+            }
+
+            #alert-new-enemy {
+                position: fixed;
+                top: 0.5rem;
+                left: 0.5rem;
+                right: 0.5rem;
+                padding: 0.65rem;
+                gap: 0.5rem;
+            }
+
+            #alert-new-enemy > div:last-child {
+                min-width: 0;
+            }
+
+            #alert-new-enemy > div:last-child > div:first-child {
+                font-size: 10px;
+            }
+
+            #toast-msg {
+                position: fixed;
+                top: 0.5rem;
+                left: 0.5rem;
+                right: 0.5rem;
+                justify-content: center;
+            }
+
+            body > div.flex-1.flex > aside {
+                width: 100%;
+                flex: none;
+                overflow: visible;
+                border-left: 0;
+                border-top: 1px solid #1e293b;
+                padding: 0.75rem;
+                padding-bottom: 4rem;
+            }
+
+            #tower-selector-list {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            #tower-selector-list .tower-card {
+                min-width: 0;
+            }
+
+            #inspector-panel {
+                min-height: 150px;
+                flex: none;
+            }
+
+            #wave-preview-list {
+                flex-wrap: wrap;
+            }
+        }
+
+        @media (max-width: 380px) {
+            body > header > div:first-child h1 {
+                font-size: 0.9rem;
+            }
+
+            body > header > div:first-child > button {
+                padding: 0.4rem;
+            }
+
+            body > header > div:nth-child(3) > button {
+                min-height: 38px;
+                padding-left: 0.4rem;
+                padding-right: 0.4rem;
+            }
+
+            #btn-start-wave span {
+                max-width: 3.4rem;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+
+            #tower-selector-list {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (min-width: 768px) and (max-width: 1100px) {
+            body > header {
+                gap: 0.5rem;
+                padding-left: 0.5rem;
+                padding-right: 0.5rem;
+            }
+
+            body > header > div:nth-child(2) {
+                gap: 0.35rem;
+            }
+
+            body > header > div:nth-child(2) > div {
+                padding-left: 0.45rem;
+                padding-right: 0.45rem;
+            }
+
+            body > div.flex-1.flex > aside {
+                width: 17rem;
+            }
+        }
+    </style>
+</head>
+<body class="h-screen w-screen flex flex-col bg-slate-950">
+
+    <!-- TOP BAR / HEADER -->
+    <header class="bg-slate-900/90 border-b border-slate-800 px-4 py-2 flex items-center justify-between shrink-0 backdrop-blur-md z-10">
+        <div class="flex items-center space-x-3">
+            <button id="btn-menu-open" title="Thoát Game" class="bg-red-500/20 hover:bg-red-500/30 text-red-400 p-2 rounded-lg border border-red-500/30 transition">
+                <i class="fa-solid fa-right-from-bracket text-lg"></i>
+            </button>
+            <div>
+                <h1 class="text-lg font-bold tracking-wider text-amber-400 uppercase leading-none">Ant Defense</h1>
+                <p class="text-[11px] text-slate-400 leading-tight">Thủ Thành Chống Kiến (100 Wave)</p>
+            </div>
+        </div>
+
+        <!-- Resources & Game Stats -->
+        <div class="flex items-center space-x-3 md:space-x-5 text-sm">
+            <div class="flex items-center space-x-2 bg-slate-800/90 px-3 py-1 rounded-lg border border-slate-700">
+                <i class="fa-solid fa-coins text-yellow-400 text-base"></i>
+                <div class="flex flex-col">
+                    <span class="text-[9px] text-slate-400 uppercase leading-none">Vàng</span>
+                    <span id="gold-display" class="font-bold text-yellow-400 mono text-sm leading-tight">200</span>
+                </div>
+            </div>
+
+            <div class="flex items-center space-x-2 bg-slate-800/90 px-3 py-1 rounded-lg border border-slate-700">
+                <i class="fa-solid fa-heart text-red-500 text-base"></i>
+                <div class="flex flex-col">
+                    <span class="text-[9px] text-slate-400 uppercase leading-none">Máu Đế Chế</span>
+                    <span id="lives-display" class="font-bold text-red-400 mono text-sm leading-tight">20</span>
+                </div>
+            </div>
+
+            <div class="flex items-center space-x-2 bg-slate-800/90 px-3 py-1 rounded-lg border border-slate-700">
+                <i class="fa-solid fa-star text-purple-400 text-base"></i>
+                <div class="flex flex-col">
+                    <span class="text-[9px] text-slate-400 uppercase leading-none">Điểm Số</span>
+                    <span id="score-display" class="font-bold text-purple-400 mono text-sm leading-tight">0</span>
+                </div>
+            </div>
+
+            <div class="flex items-center space-x-2 bg-slate-800/90 px-3 py-1 rounded-lg border border-slate-700">
+                <i class="fa-solid fa-wave-square text-cyan-400 text-base"></i>
+                <div class="flex flex-col">
+                    <span class="text-[9px] text-slate-400 uppercase leading-none">Đợt Kiến</span>
+                    <span id="wave-display" class="font-bold text-cyan-400 mono text-sm leading-tight">0 / 100</span>
+                </div>
+            </div>
+
+            <div class="flex items-center space-x-2 bg-slate-800/90 px-3 py-1 rounded-lg border border-slate-700 hidden sm:flex">
+                <i class="fa-solid fa-shield-halved text-purple-400 text-base"></i>
+                <div class="flex flex-col">
+                    <span class="text-[9px] text-slate-400 uppercase leading-none">Độ Khó</span>
+                    <span id="diff-display" class="font-bold text-purple-400 text-xs leading-tight uppercase">Dễ</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="flex items-center space-x-2">
+            <button id="btn-speed" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-xs font-semibold flex items-center space-x-1">
+                <i class="fa-solid fa-forward text-amber-400"></i>
+                <span id="speed-text">1x</span>
+            </button>
+            <button id="btn-sound" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-xs font-semibold flex items-center space-x-1">
+                <i id="sound-icon" class="fa-solid fa-volume-high text-green-400"></i>
+            </button>
+            <button id="btn-start-wave" class="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-lg text-xs shadow-lg shadow-emerald-900/40 flex items-center space-x-1.5 transition">
+                <i class="fa-solid fa-play"></i>
+                <span id="start-wave-text">GỌI WAVE</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- MAIN GAME WORKSPACE -->
+    <div class="flex-1 flex overflow-hidden relative">
+        
+        <!-- Canvas Container -->
+        <div class="flex-1 flex flex-col items-center justify-center p-2 md:p-4 bg-slate-950 relative overflow-hidden">
+            <!-- Toast Notification -->
+            <div id="toast-msg" class="absolute top-4 z-20 bg-red-950/90 text-red-200 border border-red-700 px-4 py-2 rounded-xl shadow-2xl text-xs md:text-sm opacity-0 transition-opacity duration-300 pointer-events-none flex items-center space-x-2">
+                <i class="fa-solid fa-triangle-exclamation text-red-400"></i>
+                <span id="toast-text">Không thể chặn hoàn toàn đường đi!</span>
+            </div>
+
+            <!-- New Enemy Alert Modal / Banner -->
+            <div id="alert-new-enemy" class="absolute top-16 z-30 bg-amber-950/90 text-amber-200 border-2 border-amber-500 px-5 py-3 rounded-2xl shadow-2xl text-xs md:text-sm hidden transition-all flex items-center space-x-3 backdrop-blur-md animate-bounce">
+                <div class="w-10 h-10 rounded-full bg-amber-500/20 border border-amber-400 flex items-center justify-center text-amber-400 text-xl shrink-0">
+                    <i id="alert-enemy-icon" class="fa-solid fa-triangle-exclamation"></i>
+                </div>
+                <div>
+                    <div class="font-extrabold text-amber-300 uppercase tracking-wider text-xs">CẢNH BÁO: CHỦNG KIẾN MỚI SUẤT HIỆN!</div>
+                    <div id="alert-enemy-desc" class="text-slate-300 text-[11px] font-medium mt-0.5">Kiến bay sắp tấn công ở wave tiếp theo! Hãy chuẩn bị tháp Anti-Air hoặc Laser.</div>
+                </div>
+            </div>
+
+            <!-- Auto Wave Countdown Indicator Bar -->
+            <div id="auto-wave-bar" class="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 bg-slate-900/90 border border-slate-700 px-4 py-1.5 rounded-full shadow-lg text-xs flex items-center space-x-2 hidden">
+                <i class="fa-solid fa-hourglass-half text-amber-400 animate-spin"></i>
+                <span class="text-slate-400">Tự động Wave sau:</span>
+                <span id="auto-wave-timer" class="font-bold text-amber-400 mono">15s</span>
+                <span class="text-[10px] text-emerald-400 font-semibold">(Bấm "GỌI WAVE" nhận thưởng +<span id="bonus-gold-preview">15</span>G)</span>
+            </div>
+
+            <!-- Canvas Wrapper -->
+            <div class="relative w-full h-full flex items-center justify-center">
+                <canvas id="gameCanvas" class="rounded-xl border border-slate-800 shadow-2xl bg-slate-900"></canvas>
+            </div>
+        </div>
+
+        <!-- RIGHT SIDEBAR (Towers & Info Inspector) -->
+        <aside class="w-72 md:w-80 bg-slate-900/90 border-l border-slate-800 flex flex-col p-3 md:p-4 space-y-3 shrink-0 overflow-y-auto">
+            
+            <h2 class="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center space-x-2">
+                <i class="fa-solid fa-tower-observation text-amber-400"></i>
+                <span>Công Trình Phòng Thủ</span>
+            </h2>
+
+            <!-- Tower List Cards -->
+            <div id="tower-selector-list" class="grid grid-cols-1 gap-2">
+                <!-- Dynamically Populated -->
+            </div>
+
+            <hr class="border-slate-800">
+
+            <!-- Selected Tower Detail / Inspector -->
+            <div id="inspector-panel" class="flex-1 bg-slate-950/70 rounded-xl border border-slate-800 p-3 flex flex-col justify-between">
+                <div>
+                    <h3 class="text-xs font-bold text-slate-300 mb-1 uppercase flex items-center justify-between">
+                        <span id="inspect-title">Thông Tin Tháp</span>
+                        <span id="inspect-level" class="text-[11px] text-amber-400 font-mono"></span>
+                    </h3>
+                    <p id="inspect-desc" class="text-[11px] text-slate-400 mb-3 leading-relaxed">Chọn tháp trong danh sách rồi nhấp vào lưới để đặt, hoặc nhấp vào tháp đã đặt để nâng cấp.</p>
+                    
+                    <div id="inspect-stats" class="space-y-1.5 text-xs text-slate-300 hidden">
+                        <div class="flex justify-between border-b border-slate-800/80 pb-1">
+                            <span class="text-slate-400">Sát thương:</span>
+                            <span id="stat-damage" class="font-bold text-amber-400 mono"></span>
+                        </div>
+                        <div class="flex justify-between border-b border-slate-800/80 pb-1">
+                            <span class="text-slate-400">Tầm bắn:</span>
+                            <span id="stat-range" class="font-bold text-cyan-400 mono"></span>
+                        </div>
+                        <div class="flex justify-between border-b border-slate-800/80 pb-1">
+                            <span class="text-slate-400">Tốc độ bắn:</span>
+                            <span id="stat-speed" class="font-bold text-emerald-400 mono"></span>
+                        </div>
+                        <div class="flex justify-between border-b border-slate-800/80 pb-1">
+                            <span class="text-slate-400">Mục tiêu:</span>
+                            <span id="stat-target" class="font-bold text-indigo-400"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Actions for Selected Placed Tower -->
+                <div id="inspect-actions" class="mt-3 space-y-2 hidden">
+                    <button id="btn-upgrade-tower" class="w-full py-2 bg-amber-600 hover:bg-amber-500 text-white font-bold rounded-lg text-xs transition flex items-center justify-center space-x-2">
+                        <i class="fa-solid fa-arrow-up"></i>
+                        <span>NÂNG CẤP (<span id="upgrade-cost">0</span> <i class="fa-solid fa-coins text-yellow-300"></i>)</span>
+                    </button>
+                    <button id="btn-sell-tower" class="w-full py-1.5 bg-red-950 hover:bg-red-900 border border-red-800/60 text-red-400 font-bold rounded-lg text-xs transition flex items-center justify-center space-x-2">
+                        <i class="fa-solid fa-trash-can"></i>
+                        <span>BÁN THÁP (+<span id="sell-refund">0</span> <i class="fa-solid fa-coins text-yellow-300"></i>)</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Enemy Wave Preview -->
+            <div class="bg-slate-950/50 rounded-xl border border-slate-800 p-2.5 text-xs">
+                <div class="text-slate-400 font-bold text-[11px] flex items-center justify-between">
+                    <span>ĐỢT TIẾP THEO:</span>
+                    <span id="next-wave-info" class="text-amber-400 font-mono">Wave 1</span>
+                </div>
+                <div id="wave-preview-list" class="flex items-center space-x-2 text-[10px] text-slate-400 mt-1.5">
+                    <!-- Dynamic icons -->
+                </div>
+            </div>
+
+        </aside>
+    </div>
+
+    <!-- MAIN MENU OVERLAY MODAL -->
+    <div id="main-menu" class="fixed inset-0 z-50 menu-bg flex items-center justify-center p-4">
+        <div class="max-w-md w-full bg-slate-900/90 border border-slate-700/80 rounded-2xl p-6 shadow-2xl backdrop-blur-xl text-center space-y-6">
+            <div>
+                <div class="inline-flex p-3 bg-amber-500/10 border border-amber-500/30 rounded-2xl mb-3 text-amber-400 text-4xl">
+                    <i class="fa-solid fa-bug"></i>
+                </div>
+                <h1 class="text-3xl font-extrabold tracking-wider uppercase gradient-text">ANT DEFENSE</h1>
+                <p class="text-xs text-slate-400 mt-1">Cuộc Chiến Thủ Thành Tộc Kiến 100 Màn</p>
+            </div>
+
+            <!-- Difficulty Selector -->
+            <div class="space-y-2 text-left">
+                <label class="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center space-x-1.5">
+                    <i class="fa-solid fa-sliders text-amber-400"></i>
+                    <span>Chọn Độ Khó Ban Đầu:</span>
+                </label>
+                <div class="grid grid-cols-3 gap-2">
+                    <button data-diff="EASY" class="btn-diff active p-2.5 rounded-xl border border-emerald-500/50 bg-emerald-950/40 text-emerald-300 font-bold text-xs flex flex-col items-center space-y-1 transition">
+                        <span>Dễ</span>
+                        <span class="text-[9px] font-normal text-slate-400">160G | HP 0.85x</span>
+                    </button>
+                    <button data-diff="NORMAL" class="btn-diff p-2.5 rounded-xl border border-slate-700 bg-slate-800/40 text-slate-300 font-bold text-xs flex flex-col items-center space-y-1 transition">
+                        <span>Trung Bình</span>
+                        <span class="text-[9px] font-normal text-slate-400">120G | HP 1.15x</span>
+                    </button>
+                    <button data-diff="HARD" class="btn-diff p-2.5 rounded-xl border border-slate-700 bg-slate-800/40 text-slate-300 font-bold text-xs flex flex-col items-center space-y-1 transition">
+                        <span>Khó</span>
+                        <span class="text-[9px] font-normal text-slate-400">75G | HP 1.7x</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Main Menu Action Buttons -->
+            <div class="space-y-2.5 pt-2">
+                <button id="btn-start-new" class="w-full py-3 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-extrabold text-sm rounded-xl shadow-lg shadow-amber-500/25 transition uppercase flex items-center justify-center space-x-2">
+                    <i class="fa-solid fa-play"></i>
+                    <span>Bắt Đầu Game Mới</span>
+                </button>
+
+                <button id="btn-resume-game" class="w-full py-2.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 font-bold text-xs rounded-xl transition hidden flex items-center justify-center space-x-2">
+                    <i class="fa-solid fa-circle-play text-amber-400"></i>
+                    <span>Tiếp Tục Trận Chiến</span>
+                </button>
+            </div>
+    <!-- CONFIRM EXIT DIALOG MODAL -->
+    <div id="confirm-exit-modal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center hidden p-4">
+        <div class="bg-slate-900 border border-red-500/40 rounded-2xl p-5 max-w-xs w-full text-center shadow-2xl space-y-4">
+            <div class="text-4xl text-red-500">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+            <div>
+                <h3 class="text-lg font-bold text-white uppercase">Xác Nhận Thoát?</h3>
+                <p class="text-xs text-slate-400 mt-1">Toàn bộ tiến trình màn chơi hiện tại sẽ bị xóa!</p>
+            </div>
+            <div class="flex space-x-2">
+                <button id="btn-cancel-exit" class="flex-1 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs rounded-xl transition">
+                    HỦY
+                </button>
+                <button id="btn-confirm-exit" class="flex-1 py-2 bg-red-600 hover:bg-red-500 text-white font-bold text-xs rounded-xl transition shadow-lg shadow-red-900/40">
+                    THOÁT GAME
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- GAME OVER / VICTORY MODAL -->
+    <div id="game-modal" class="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center hidden p-4">
+        <div class="bg-slate-900 border border-slate-700 rounded-2xl p-6 max-w-sm w-full text-center shadow-2xl space-y-4">
+            <div id="modal-icon" class="text-5xl text-amber-400">
+                <i class="fa-solid fa-trophy"></i>
+            </div>
+            <div>
+                <h2 id="modal-title" class="text-2xl font-extrabold text-white uppercase tracking-wider">CHIẾN THẮNG!</h2>
+                <p id="modal-desc" class="text-xs text-slate-400 mt-1">Bạn đã bảo vệ thành công căn cứ khỏi thảm họa đàn kiến!</p>
+            </div>
+            
+            <div class="bg-slate-950 rounded-xl p-3 space-y-1.5 text-xs">
+                <div class="flex justify-between text-slate-400">
+                    <span>Tổng điểm số:</span>
+                    <span id="modal-score" class="font-bold text-purple-400 mono">0</span>
+                </div>
+                <div class="flex justify-between text-slate-400">
+                    <span>Số wave vượt qua:</span>
+                    <span id="modal-waves" class="font-bold text-cyan-400 mono">0 / 100</span>
+                </div>
+            </div>
+
+            <button id="btn-restart" class="w-full py-3 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold text-sm rounded-xl shadow-lg transition uppercase">
+                Trở Về Menu Chính
+            </button>
+        </div>
+    </div>
+
+    <script>
+        /**
+         * ANT DEFENSE - UPGRADED TOWER DEFENSE GAME
+         * Features: 25x50 Grid, Dynamic Pathfinding (BFS), 100 Balanced Waves,
+         * 2D Detailed Canvas Sprites (Ants & Sci-Fi Turrets), Sound Synthesizer.
+         */
+
+        const GRID_COLS = 50;
+        const GRID_ROWS = 25;
+        const CANVAS_ASPECT = GRID_COLS / GRID_ROWS; // 2:1 ratio
+
+        // DIFFICULTY SETTINGS (UPDATED WITH REBALANCED VALUES & SPEED MULTIPLIERS)
+        const DIFFICULTIES = {
+            EASY: { name: 'Dễ', startGold: 160, hpMult: 0.85, speedMult: 0.95, rewardMult: 1.0 },
+            NORMAL: { name: 'Trung Bình', startGold: 120, hpMult: 1.15, speedMult: 1.05, rewardMult: 1.0 },
+            HARD: { name: 'Khó', startGold: 75, hpMult: 1.7, speedMult: 1.25, rewardMult: 1.0 }
+        };
+
+        // TOWER DEFINITIONS
+        const TOWER_TYPES = {
+            CANNON: {
+                id: 'CANNON',
+                name: 'Tháp Cannon',
+                desc: 'Pháo bắn đất tốc độ khá, nâng cấp sẽ bắn diện rộng.',
+                cost: 80,
+                range: 3.8,
+                damage: 28,
+                fireRate: 1.1,
+                type: 'GROUND',
+                color: '#f59e0b',
+                icon: 'fa-monument',
+                bulletSpeed: 14,
+                bulletColor: '#fbbf24'
+            },
+            ANTI_AIR: {
+                id: 'ANTI_AIR',
+                name: 'Tên Lửa Air',
+                desc: 'Chuyên tiêu diệt Kiến Bay từ khoảng cách rất xa.',
+                cost: 110,
+                range: 5.8,
+                damage: 45,
+                fireRate: 1.3,
+                type: 'AIR',
+                color: '#06b6d4',
+                icon: 'fa-jet-fighter-up',
+                bulletSpeed: 18,
+                bulletColor: '#38bdf8'
+            },
+            FROST: {
+                id: 'FROST',
+                name: 'Tháp Băng Giá',
+                desc: 'Phát sóng làm chậm tốc độ kiến mặt đất xung quanh.',
+                cost: 130,
+                range: 3.2,
+                damage: 10,
+                fireRate: 1.5,
+                slowFactor: 0.5,
+                slowDuration: 2.2,
+                type: 'GROUND',
+                color: '#3b82f6',
+                icon: 'fa-snowflake',
+                bulletSpeed: 15,
+                bulletColor: '#93c5fd'
+            },
+            LASER: {
+                id: 'LASER',
+                name: 'Laser Đa Năng',
+                desc: 'Tia laser liên tục bắn cả Kiến Đất lẫn Kiến Bay.',
+                cost: 190,
+                range: 4.4,
+                damage: 60,
+                fireRate: 5.0,
+                type: 'BOTH',
+                color: '#a855f7',
+                icon: 'fa-bolt-lightning',
+                bulletSpeed: 999,
+                bulletColor: '#c084fc'
+            }
+        };
+
+        // ANT TYPES DEFINITION
+        const ANT_TYPES = {
+            WORKER: { id: 'WORKER', name: 'Kiến Thợ', baseHp: 55, speed: 1.7, reward: 2, isFlying: false, color: '#a16207', size: 0.35, score: 15 },
+            SCOUT: { id: 'SCOUT', name: 'Kiến Trinh Sát', baseHp: 35, speed: 2.7, reward: 4, isFlying: false, color: '#eab308', size: 0.28, score: 20 },
+            SOLDIER: { id: 'SOLDIER', name: 'Kiến Lính', baseHp: 180, speed: 1.1, reward: 5, isFlying: false, color: '#b91c1c', size: 0.45, score: 35 },
+            FLYING: { id: 'FLYING', name: 'Kiến Bay', baseHp: 85, speed: 2.0, reward: 10, isFlying: true, color: '#0284c7', size: 0.38, score: 30 },
+            BOSS: { id: 'BOSS', name: 'Kiến Chúa', baseHp: 900, speed: 0.75, reward: 15, isFlying: false, color: '#881337', size: 0.7, score: 250 },
+            ELDER_BOSS: { id: 'ELDER_BOSS', name: 'Kiến Chúa Cổ Đại', baseHp: 1800, speed: 0.8, reward: 30, isFlying: false, color: '#7f1d1d', size: 0.85, score: 500 }
+        };
+
+        // SOUND SYNTHESIZER
+        class SoundSystem {
+            constructor() {
+                this.ctx = null;
+                this.muted = false;
+            }
+
+            init() {
+                if (!this.ctx) {
+                    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+            }
+
+            playShoot(type) {
+                if (this.muted || !this.ctx) return;
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+
+                if (type === 'CANNON') {
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(160, now);
+                    osc.frequency.exponentialRampToValueAtTime(30, now + 0.12);
+                    gain.gain.setValueAtTime(0.12, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
+                    osc.start(now);
+                    osc.stop(now + 0.12);
+                } else if (type === 'ANTI_AIR') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(450, now);
+                    osc.frequency.exponentialRampToValueAtTime(850, now + 0.1);
+                    gain.gain.setValueAtTime(0.08, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+                    osc.start(now);
+                    osc.stop(now + 0.1);
+                } else if (type === 'FROST') {
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(550, now);
+                    osc.frequency.linearRampToValueAtTime(250, now + 0.18);
+                    gain.gain.setValueAtTime(0.08, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.18);
+                    osc.start(now);
+                    osc.stop(now + 0.18);
+                }
+            }
+
+            playHit() {
+                if (this.muted || !this.ctx) return;
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(100, now);
+                osc.frequency.exponentialRampToValueAtTime(30, now + 0.06);
+                gain.gain.setValueAtTime(0.08, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.06);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.06);
+            }
+
+            playKill() {
+                if (this.muted || !this.ctx) return;
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(320, now);
+                osc.frequency.exponentialRampToValueAtTime(650, now + 0.1);
+                gain.gain.setValueAtTime(0.1, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.1);
+            }
+
+            playBuild() {
+                if (this.muted || !this.ctx) return;
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(250, now);
+                osc.frequency.exponentialRampToValueAtTime(500, now + 0.08);
+                gain.gain.setValueAtTime(0.12, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.08);
+            }
+        }
+
+        const audio = new SoundSystem();
+
+        // MAIN GAME ENGINE
+        class Game {
+            constructor() {
+                this.canvas = document.getElementById('gameCanvas');
+                this.ctx = this.canvas.getContext('2d');
+                
+                this.cellSize = 20;
+                this.difficultyKey = 'EASY';
+                this.difficulty = DIFFICULTIES.EASY;
+
+                this.gold = this.difficulty.startGold;
+                this.lives = 20;
+                this.score = 0;
+                this.wave = 0;
+                this.maxWaves = 100;
+                this.gameSpeed = 1;
+                this.isPaused = true; // Starts in menu
+                this.isWaveInProgress = false;
+
+                // Auto Wave System
+                this.autoWaveUnlocked = false;
+                this.autoWaveTimer = 15;
+                this.autoWaveMaxTimer = 15;
+
+                // Warn tracking for new ant types
+                this.alertedEnemyTypes = new Set(['WORKER']);
+
+                this.grid = Array(GRID_ROWS).fill(null).map(() => Array(GRID_COLS).fill(0));
+                
+                this.startCell = { r: Math.floor(GRID_ROWS / 2), c: 0 };
+                this.endCell = { r: Math.floor(GRID_ROWS / 2), c: GRID_COLS - 1 };
+
+                this.currentPath = [];
+                this.towers = [];
+                this.ants = [];
+                this.bullets = [];
+                this.particles = [];
+
+                this.selectedTowerType = TOWER_TYPES.CANNON;
+                this.selectedPlacedTower = null;
+                this.hoverCell = null;
+
+                this.spawnQueue = [];
+                this.spawnTimer = 0;
+                this.lastTime = performance.now();
+
+                this.initUI();
+                this.resizeCanvas();
+                window.addEventListener('resize', () => this.resizeCanvas());
+
+                this.recalculatePath();
+            }
+
+            resizeCanvas() {
+                const container = this.canvas.parentElement;
+                const maxW = container.clientWidth;
+                const maxH = container.clientHeight;
+
+                if (maxW <= 0 || maxH <= 0) return;
+
+                const w = Math.min(maxW, maxH * CANVAS_ASPECT);
+                const h = w / CANVAS_ASPECT;
+
+                this.canvas.width = Math.floor(w);
+                this.canvas.height = Math.floor(h);
+                this.cellSize = w / GRID_COLS;
+            }
+
+            // BFS PATHFINDING
+            findPath(gridState = this.grid) {
+                const queue = [[this.startCell.r, this.startCell.c]];
+                const visited = Array(GRID_ROWS).fill(null).map(() => Array(GRID_COLS).fill(false));
+                const parent = Array(GRID_ROWS).fill(null).map(() => Array(GRID_COLS).fill(null));
+                
+                visited[this.startCell.r][this.startCell.c] = true;
+
+                const dr = [-1, 1, 0, 0];
+                const dc = [0, 0, -1, 1];
+
+                let reached = false;
+
+                while (queue.length > 0) {
+                    const [r, c] = queue.shift();
+
+                    if (r === this.endCell.r && c === this.endCell.c) {
+                        reached = true;
+                        break;
+                    }
+
+                    for (let i = 0; i < 4; i++) {
+                        const nr = r + dr[i];
+                        const nc = c + dc[i];
+
+                        if (nr >= 0 && nr < GRID_ROWS && nc >= 0 && nc < GRID_COLS) {
+                            if (!visited[nr][nc] && gridState[nr][nc] === 0) {
+                                visited[nr][nc] = true;
+                                parent[nr][nc] = [r, c];
+                                queue.push([nr, nc]);
+                            }
+                        }
+                    }
+                }
+
+                if (!reached) return null;
+
+                const path = [];
+                let curr = [this.endCell.r, this.endCell.c];
+                while (curr) {
+                    path.push({ r: curr[0], c: curr[1] });
+                    curr = parent[curr[0]][curr[1]];
+                }
+                path.reverse();
+                return path;
+            }
+
+            recalculatePath() {
+                const newPath = this.findPath();
+                if (newPath) {
+                    this.currentPath = newPath;
+                    return true;
+                }
+                return false;
+            }
+
+            canPlaceTower(r, c) {
+                if (r < 0 || r >= GRID_ROWS || c < 0 || c >= GRID_COLS) return false;
+                if ((r === this.startCell.r && c === this.startCell.c) || (r === this.endCell.r && c === this.endCell.c)) {
+                    return false;
+                }
+                if (this.grid[r][c] !== 0) return false;
+
+                this.grid[r][c] = 1;
+                const testPath = this.findPath();
+                this.grid[r][c] = 0;
+
+                return testPath !== null;
+            }
+
+            // UI INIT & LISTENERS
+            initUI() {
+                // Populate Tower Cards
+                const container = document.getElementById('tower-selector-list');
+                container.innerHTML = '';
+
+                Object.values(TOWER_TYPES).forEach(t => {
+                    const card = document.createElement('div');
+                    card.className = `tower-card p-2 rounded-xl border border-slate-800 bg-slate-950/80 cursor-pointer flex items-center space-x-2.5 ${t.id === this.selectedTowerType?.id ? 'selected' : ''}`;
+                    card.dataset.id = t.id;
+
+                    card.innerHTML = `
+                        <div class="w-9 h-9 rounded-lg flex items-center justify-center text-slate-950 font-bold shrink-0 text-base" style="background-color: ${t.color}">
+                            <i class="fa-solid ${t.icon}"></i>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center justify-between">
+                                <span class="font-bold text-xs text-slate-200 truncate">${t.name}</span>
+                                <span class="text-xs font-bold text-yellow-400 mono ml-1">${t.cost}G</span>
+                            </div>
+                        </div>
+                    `;
+
+                    card.addEventListener('click', () => {
+                        this.selectedTowerType = t;
+                        this.selectedPlacedTower = null;
+                        this.updateUI();
+                    });
+
+                    container.appendChild(card);
+                });
+
+                // Top Controls & Exit Button Dialog Logic
+                document.getElementById('btn-start-wave').addEventListener('click', () => {
+                    audio.init();
+                    this.startNextWave();
+                });
+
+                document.getElementById('btn-menu-open').addEventListener('click', () => {
+                    audio.init();
+                    this.isPaused = true;
+                    if (this.wave > 0 || this.towers.length > 0) {
+                        document.getElementById('confirm-exit-modal').classList.remove('hidden');
+                    } else {
+                        document.getElementById('main-menu').classList.remove('hidden');
+                    }
+                });
+
+                document.getElementById('btn-cancel-exit').addEventListener('click', () => {
+                    document.getElementById('confirm-exit-modal').classList.add('hidden');
+                    this.isPaused = false;
+                });
+
+                document.getElementById('btn-confirm-exit').addEventListener('click', () => {
+                    document.getElementById('confirm-exit-modal').classList.add('hidden');
+                    this.restartGame();
+                    document.getElementById('main-menu').classList.remove('hidden');
+                });
+
+                document.getElementById('btn-speed').addEventListener('click', () => {
+                    if (this.gameSpeed === 1) this.gameSpeed = 2;
+                    else if (this.gameSpeed === 2) this.gameSpeed = 3;
+                    else this.gameSpeed = 1;
+                    document.getElementById('speed-text').innerText = this.gameSpeed + 'x';
+                });
+
+                document.getElementById('btn-sound').addEventListener('click', () => {
+                    audio.muted = !audio.muted;
+                    const icon = document.getElementById('sound-icon');
+                    if (audio.muted) {
+                        icon.className = 'fa-solid fa-volume-xmark text-red-400';
+                    } else {
+                        icon.className = 'fa-solid fa-volume-high text-green-400';
+                    }
+                });
+
+                // Menu & Modals
+                document.getElementById('btn-menu-open').addEventListener('click', () => {
+                    this.isPaused = true;
+                    document.getElementById('main-menu').classList.remove('hidden');
+                    if (this.wave > 0 || this.towers.length > 0) {
+                        document.getElementById('btn-resume-game').classList.remove('hidden');
+                    }
+                });
+
+                document.getElementById('btn-resume-game').addEventListener('click', () => {
+                    this.isPaused = false;
+                    document.getElementById('main-menu').classList.add('hidden');
+                });
+
+                // Difficulty Buttons
+                document.querySelectorAll('.btn-diff').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        document.querySelectorAll('.btn-diff').forEach(b => {
+                            b.className = 'btn-diff p-2.5 rounded-xl border border-slate-700 bg-slate-800/40 text-slate-300 font-bold text-xs flex flex-col items-center space-y-1 transition';
+                        });
+                        const target = e.currentTarget;
+                        target.className = 'btn-diff active p-2.5 rounded-xl border border-emerald-500/50 bg-emerald-950/40 text-emerald-300 font-bold text-xs flex flex-col items-center space-y-1 transition';
+                        this.difficultyKey = target.dataset.diff;
+                        this.difficulty = DIFFICULTIES[this.difficultyKey];
+                    });
+                });
+
+                document.getElementById('btn-start-new').addEventListener('click', () => {
+                    audio.init();
+                    this.restartGame();
+                    document.getElementById('main-menu').classList.add('hidden');
+                    this.isPaused = false;
+                });
+
+                // Canvas Interaction
+                this.canvas.addEventListener('pointermove', (e) => this.onPointerMove(e));
+                this.canvas.addEventListener('pointerdown', (e) => this.onPointerDown(e));
+                this.canvas.addEventListener('pointerleave', () => { this.hoverCell = null; });
+
+                // Inspector Buttons
+                document.getElementById('btn-upgrade-tower').addEventListener('click', () => {
+                    if (this.selectedPlacedTower) {
+                        this.selectedPlacedTower.upgrade();
+                        this.updateUI();
+                    }
+                });
+
+                document.getElementById('btn-sell-tower').addEventListener('click', () => {
+                    if (this.selectedPlacedTower) {
+                        this.sellTower(this.selectedPlacedTower);
+                        this.selectedPlacedTower = null;
+                        this.updateUI();
+                    }
+                });
+
+                document.getElementById('btn-restart').addEventListener('click', () => {
+                    document.getElementById('game-modal').classList.add('hidden');
+                    document.getElementById('main-menu').classList.remove('hidden');
+                });
+            }
+
+            updateUI() {
+                document.getElementById('gold-display').innerText = this.gold;
+                document.getElementById('lives-display').innerText = this.lives;
+                document.getElementById('score-display').innerText = this.score;
+                document.getElementById('wave-display').innerText = `${this.wave} / ${this.maxWaves}`;
+                document.getElementById('diff-display').innerText = this.difficulty.name;
+
+                // Tower cards state
+                document.querySelectorAll('.tower-card').forEach(card => {
+                    const id = card.dataset.id;
+                    const type = TOWER_TYPES[id];
+                    if (this.selectedTowerType?.id === id && !this.selectedPlacedTower) {
+                        card.classList.add('selected');
+                    } else {
+                        card.classList.remove('selected');
+                    }
+
+                    if (this.gold < type.cost) {
+                        card.classList.add('disabled');
+                    } else {
+                        card.classList.remove('disabled');
+                    }
+                });
+
+                // Inspector Box
+                const statsBox = document.getElementById('inspect-stats');
+                const actionsBox = document.getElementById('inspect-actions');
+                const titleEl = document.getElementById('inspect-title');
+                const levelEl = document.getElementById('inspect-level');
+                const descEl = document.getElementById('inspect-desc');
+
+                if (this.selectedPlacedTower) {
+                    const t = this.selectedPlacedTower;
+                    titleEl.innerText = t.type.name;
+                    levelEl.innerText = `CẤP ${t.level}`;
+                    descEl.innerText = t.type.desc;
+                    statsBox.classList.remove('hidden');
+                    actionsBox.classList.remove('hidden');
+
+                    document.getElementById('stat-damage').innerText = Math.round(t.damage);
+                    document.getElementById('stat-range').innerText = t.range.toFixed(1) + ' Ô';
+                    document.getElementById('stat-speed').innerText = t.fireRate.toFixed(1) + '/giây';
+                    document.getElementById('stat-target').innerText = t.type.type === 'AIR' ? 'Trên Không' : (t.type.type === 'GROUND' ? 'Mặt Đất' : 'Đa Năng');
+
+                    document.getElementById('upgrade-cost').innerText = t.getUpgradeCost();
+                    document.getElementById('sell-refund').innerText = t.getSellValue();
+
+                    const upgradeBtn = document.getElementById('btn-upgrade-tower');
+                    if (this.gold < t.getUpgradeCost()) {
+                        upgradeBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                        upgradeBtn.disabled = true;
+                    } else {
+                        upgradeBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                        upgradeBtn.disabled = false;
+                    }
+                } else if (this.selectedTowerType) {
+                    const t = this.selectedTowerType;
+                    titleEl.innerText = t.name;
+                    levelEl.innerText = 'CHUẨN BỊ ĐẶT';
+                    descEl.innerText = t.desc;
+                    statsBox.classList.remove('hidden');
+                    actionsBox.classList.add('hidden');
+
+                    document.getElementById('stat-damage').innerText = t.damage;
+                    document.getElementById('stat-range').innerText = t.range.toFixed(1) + ' Ô';
+                    document.getElementById('stat-speed').innerText = t.fireRate.toFixed(1) + '/giây';
+                    document.getElementById('stat-target').innerText = t.type === 'AIR' ? 'Trên Không' : (t.type === 'GROUND' ? 'Mặt Đất' : 'Đa Năng');
+                } else {
+                    titleEl.innerText = 'Thông Tin Tháp';
+                    levelEl.innerText = '';
+                    descEl.innerText = 'Chọn tháp trong danh sách rồi nhấp vào lưới để đặt, hoặc nhấp vào tháp đã đặt để nâng cấp.';
+                    statsBox.classList.add('hidden');
+                    actionsBox.classList.add('hidden');
+                }
+
+                document.getElementById('next-wave-info').innerText = `Wave ${this.wave + 1}`;
+            }
+
+            showToast(msg) {
+                const toast = document.getElementById('toast-msg');
+                document.getElementById('toast-text').innerText = msg;
+                toast.classList.remove('opacity-0');
+                clearTimeout(this.toastTimer);
+                this.toastTimer = setTimeout(() => {
+                    toast.classList.add('opacity-0');
+                }, 2000);
+            }
+
+            checkAndAlertNewEnemy(nextWaveNum) {
+                const nextQueue = this.previewWaveTypes(nextWaveNum);
+                let newType = null;
+
+                for (let typeObj of nextQueue) {
+                    if (!this.alertedEnemyTypes.has(typeObj.id)) {
+                        newType = typeObj;
+                        this.alertedEnemyTypes.add(typeObj.id);
+                        break;
+                    }
+                }
+
+                if (newType) {
+                    const alertBox = document.getElementById('alert-new-enemy');
+                    const descBox = document.getElementById('alert-enemy-desc');
+                    const iconBox = document.getElementById('alert-enemy-icon');
+
+                    if (newType.id === 'FLYING') {
+                        descBox.innerText = `Wave ${nextWaveNum}: "Kiến Bay" sắp xuất hiện! Chúng bay qua mọi tháp cản đường, hãy xây tháp Anti-Air hoặc Laser!`;
+                        iconBox.className = 'fa-solid fa-jet-fighter-up text-cyan-400';
+                    } else if (newType.id === 'SOLDIER') {
+                        descBox.innerText = `Wave ${nextWaveNum}: "Kiến Lính" giáp dầy HP cao sắp đổ bộ! Cần tháp Sát thương lớn để tiêu diệt.`;
+                        iconBox.className = 'fa-solid fa-shield-cat text-red-400';
+                    } else if (newType.id === 'SCOUT') {
+                        descBox.innerText = `Wave ${nextWaveNum}: "Kiến Trinh Sát" siêu nhanh sắp chạy qua! Cần tháp Băng Giá làm chậm.`;
+                        iconBox.className = 'fa-solid fa-bolt text-yellow-400';
+                    } else if (newType.id === 'BOSS') {
+                        descBox.innerText = `Wave ${nextWaveNum}: "Kiến Chúa" BOSS SIÊU KHỦNG xuất hiện! Tập trung toàn bộ hỏa lực!`;
+                        iconBox.className = 'fa-solid fa-skull text-red-500';
+                    } else if (newType.id === 'ELDER_BOSS') {
+                        descBox.innerText = `Wave ${nextWaveNum}: "Kiến Chúa Cổ Đại" xuất hiện! Đây là boss đặc biệt với lượng máu cực lớn.`;
+                        iconBox.className = 'fa-solid fa-skull-crossbones text-red-500';
+                    }
+
+                    alertBox.classList.remove('hidden');
+                    clearTimeout(this.alertTimer);
+                    this.alertTimer = setTimeout(() => {
+                        alertBox.classList.add('hidden');
+                    }, 6500);
+                }
+            }
+
+            previewWaveTypes(waveNum) {
+                const types = [];
+                const count = this.getWaveEnemyCount(waveNum);
+                for (let i = 0; i < count; i++) {
+                    types.push(this.getWaveAntType(waveNum, i, count, Math.random()));
+                }
+                return types;
+            }
+
+            getGridPos(e) {
+                const rect = this.canvas.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                const c = Math.floor(x / this.cellSize);
+                const r = Math.floor(y / this.cellSize);
+                return { r, c };
+            }
+
+            onPointerMove(e) {
+                const pos = this.getGridPos(e);
+                if (pos.r >= 0 && pos.r < GRID_ROWS && pos.c >= 0 && pos.c < GRID_COLS) {
+                    this.hoverCell = pos;
+                } else {
+                    this.hoverCell = null;
+                }
+            }
+
+            onPointerDown(e) {
+                if (this.isPaused) return;
+                audio.init();
+                const pos = this.getGridPos(e);
+                if (pos.r < 0 || pos.r >= GRID_ROWS || pos.c < 0 || pos.c >= GRID_COLS) return;
+
+                const existing = this.towers.find(t => t.r === pos.r && t.c === pos.c);
+                if (existing) {
+                    this.selectedPlacedTower = existing;
+                    this.updateUI();
+                    return;
+                }
+
+                if (this.selectedTowerType) {
+                    if (this.gold < this.selectedTowerType.cost) {
+                        this.showToast("Không đủ vàng để mua tháp!");
+                        return;
+                    }
+
+                    if (this.canPlaceTower(pos.r, pos.c)) {
+                        this.gold -= this.selectedTowerType.cost;
+                        this.grid[pos.r][pos.c] = 1;
+
+                        const newTower = new Tower(pos.r, pos.c, this.selectedTowerType, this);
+                        this.towers.push(newTower);
+
+                        this.recalculatePath();
+                        this.updateAntPaths();
+
+                        audio.playBuild();
+                        this.selectedPlacedTower = newTower;
+                        this.updateUI();
+                    } else {
+                        this.showToast("Không thể đặt ở đây (chặn đường đi duy nhất)!");
+                    }
+                }
+            }
+
+            sellTower(tower) {
+                this.gold += tower.getSellValue();
+                this.grid[tower.r][tower.c] = 0;
+                this.towers = this.towers.filter(t => t !== tower);
+                this.recalculatePath();
+                this.updateAntPaths();
+                audio.playBuild();
+            }
+
+            updateAntPaths() {
+                this.ants.forEach(ant => {
+                    if (!ant.type.isFlying) {
+                        ant.updatePath(this.currentPath);
+                    }
+                });
+            }
+
+            // WAVE QUEUE GENERATOR (BALANCED FOR 100 WAVES)
+            startNextWave(isAutomatic = false) {
+                if (this.wave >= this.maxWaves) return;
+
+                // Thưởng gọi sớm nếu wave trước đã xong và đang đếm ngược auto-wave
+                if (!isAutomatic && !this.isWaveInProgress && this.autoWaveUnlocked && this.autoWaveTimer > 0) {
+                    const earlyBonus = Math.floor(this.autoWaveTimer);
+                    this.gold += earlyBonus;
+                    this.showToast(`Thưởng gọi sớm: +${earlyBonus} Gold!`);
+                }
+
+                if (this.isWaveInProgress && !isAutomatic) return;
+
+                document.getElementById('alert-new-enemy').classList.add('hidden');
+
+                this.wave++;
+                this.isWaveInProgress = true;
+                this.generateWaveQueue(this.wave);
+                this.updateUI();
+
+                document.getElementById('auto-wave-bar').classList.add('hidden');
+                document.getElementById('btn-start-wave').classList.add('opacity-50', 'pointer-events-none');
+            }
+
+            generateWaveQueue(waveNum) {
+                this.spawnQueue = [];
+                const count = this.getWaveEnemyCount(waveNum);
+
+                for (let i = 0; i < count; i++) {
+                    this.spawnQueue.push({
+                        type: this.getWaveAntType(waveNum, i, count, Math.random()),
+                        delay: Math.max(0.3, 0.7 - (waveNum * 0.005))
+                    });
+                }
+            }
+
+            getWaveEnemyCount(waveNum) {
+                const baseCount = 4 + Math.floor(waveNum * 1.8);
+                const countMultiplier = waveNum >= 50 ? 2.5 : waveNum >= 25 ? 2.25 : waveNum >= 10 ? 2 : 1;
+                return Math.ceil(baseCount * countMultiplier);
+            }
+
+            getWaveAntType(waveNum, index, count, roll) {
+                const bossCount = waveNum % 10 === 0
+                    ? Math.min(5, 1 + Math.floor(waveNum / 10))
+                    : waveNum % 5 === 0 ? 1 : 0;
+                if (bossCount > 0 && index >= count - bossCount) {
+                    return waveNum % 10 === 0 ? ANT_TYPES.ELDER_BOSS : ANT_TYPES.BOSS;
+                }
+
+                if (waveNum >= 25) {
+                    if (roll < 0.35) return ANT_TYPES.SOLDIER;
+                    if (roll < 0.65) return ANT_TYPES.FLYING;
+                    if (roll < 0.9) return ANT_TYPES.SCOUT;
+                    return ANT_TYPES.WORKER;
+                }
+
+                if (waveNum >= 10) {
+                    if (roll < 0.3) return ANT_TYPES.SOLDIER;
+                    if (roll < 0.55) return ANT_TYPES.FLYING;
+                    if (roll < 0.8) return ANT_TYPES.SCOUT;
+                    return ANT_TYPES.WORKER;
+                }
+
+                if (waveNum >= 2 && roll < 0.3) return ANT_TYPES.SCOUT;
+                if (waveNum >= 4 && roll > 0.5 && roll < 0.8) return ANT_TYPES.SOLDIER;
+                if (waveNum >= 3 && roll >= 0.8) return ANT_TYPES.FLYING;
+                return ANT_TYPES.WORKER;
+            }
+
+            spawnAnt(type) {
+                const ant = new Ant(type, this.startCell, this.endCell, this.currentPath, this);
+                this.ants.push(ant);
+            }
+
+            // LOOP & UPDATE
+            start() {
+                const loop = (timestamp) => {
+                    const dt = Math.min((timestamp - this.lastTime) / 1000, 0.1) * this.gameSpeed;
+                    this.lastTime = timestamp;
+
+                    if (!this.isPaused) {
+                        this.update(dt);
+                    }
+                    this.render();
+
+                    requestAnimationFrame(loop);
+                };
+                requestAnimationFrame(loop);
+            }
+
+            update(dt) {
+                let countdownJustStarted = false;
+
+                // Wave Spawning
+                if (this.spawnQueue.length > 0) {
+                    this.spawnTimer += dt;
+                    const next = this.spawnQueue[0];
+                    if (this.spawnTimer >= next.delay) {
+                        this.spawnTimer = 0;
+                        this.spawnAnt(next.type);
+                        this.spawnQueue.shift();
+
+                        if (this.spawnQueue.length === 0) {
+                            this.autoWaveUnlocked = true;
+                            this.autoWaveTimer = this.autoWaveMaxTimer;
+                            document.getElementById('auto-wave-timer').innerText = `${this.autoWaveMaxTimer}s`;
+                            document.getElementById('bonus-gold-preview').innerText = this.autoWaveMaxTimer;
+                            document.getElementById('auto-wave-bar').classList.remove('hidden');
+                            countdownJustStarted = true;
+                        }
+                    }
+                }
+
+                // Update Towers
+                this.towers.forEach(t => t.update(dt));
+
+                // Update Ants
+                for (let i = this.ants.length - 1; i >= 0; i--) {
+                    const ant = this.ants[i];
+                    ant.update(dt);
+
+                    if (ant.reachedGoal) {
+                        this.lives -= 1;
+                        this.ants.splice(i, 1);
+                        this.updateUI();
+
+                        if (this.lives <= 0) {
+                            this.endGame(false);
+                        }
+                    } else if (ant.isDead) {
+                        const economyMultiplier = Math.max(0.35, 1 - Math.floor(this.wave / 10) * 0.3);
+                        this.gold += Math.floor(ant.type.reward * this.difficulty.rewardMult * economyMultiplier);
+                        this.score += ant.type.score;
+                        audio.playKill();
+                        this.ants.splice(i, 1);
+                        this.updateUI();
+                    }
+                }
+
+                if (this.spawnQueue.length === 0 && this.ants.length === 0 && this.isWaveInProgress) {
+                    this.isWaveInProgress = false;
+                    const economyMultiplier = Math.max(0.35, 1 - Math.floor(this.wave / 10) * 0.3);
+                    const waveReward = Math.min(30 + this.wave * 5, 130);
+                    this.gold += Math.floor(waveReward * this.difficulty.rewardMult * economyMultiplier);
+
+                    this.updateUI();
+                    document.getElementById('btn-start-wave').classList.remove('opacity-50', 'pointer-events-none');
+
+                    if (this.wave >= this.maxWaves) {
+                        this.endGame(true);
+                        return;
+                    }
+
+                    this.checkAndAlertNewEnemy(this.wave + 1);
+                }
+
+                // The countdown starts when the last queued ant is spawned, not when it dies.
+                if (!countdownJustStarted && this.spawnQueue.length === 0 && this.autoWaveUnlocked && this.wave > 0 && this.wave < this.maxWaves) {
+                    this.autoWaveTimer = Math.max(0, this.autoWaveTimer - dt);
+                    const secondsLeft = Math.max(0, Math.ceil(this.autoWaveTimer));
+                    document.getElementById('auto-wave-timer').innerText = secondsLeft + 's';
+                    document.getElementById('bonus-gold-preview').innerText = secondsLeft;
+
+                    if (this.autoWaveTimer <= 0) {
+                        this.startNextWave(true);
+                    }
+                }
+
+                // Update Bullets
+                for (let i = this.bullets.length - 1; i >= 0; i--) {
+                    const b = this.bullets[i];
+                    b.update(dt);
+                    if (b.destroyed) this.bullets.splice(i, 1);
+                }
+
+                // Update Particles
+                for (let i = this.particles.length - 1; i >= 0; i--) {
+                    const p = this.particles[i];
+                    p.update(dt);
+                    if (p.life <= 0) this.particles.splice(i, 1);
+                }
+            }
+
+            endGame(isVictory) {
+                this.isPaused = true;
+                const modal = document.getElementById('game-modal');
+                const title = document.getElementById('modal-title');
+                const desc = document.getElementById('modal-desc');
+                const icon = document.getElementById('modal-icon');
+
+                if (isVictory) {
+                    title.innerText = "CHIẾN THẮNG!";
+                    title.className = "text-2xl font-extrabold text-emerald-400 uppercase tracking-wider";
+                    desc.innerText = "Bạn đã hoàn thành xuất sắc 100 Wave bảo vệ căn cứ!";
+                    icon.innerHTML = '<i class="fa-solid fa-trophy text-yellow-400"></i>';
+                } else {
+                    title.innerText = "THẤT BẠI!";
+                    title.className = "text-2xl font-extrabold text-red-500 uppercase tracking-wider";
+                    desc.innerText = "Căn cứ đã bị đàn kiến tràn qua hoàn toàn!";
+                    icon.innerHTML = '<i class="fa-solid fa-skull text-red-500"></i>';
+                }
+
+                document.getElementById('modal-score').innerText = this.score;
+                document.getElementById('modal-waves').innerText = `${this.wave} / ${this.maxWaves}`;
+
+                modal.classList.remove('hidden');
+                document.getElementById('btn-resume-game').classList.add('hidden');
+            }
+
+            restartGame() {
+                this.gold = this.difficulty.startGold;
+                this.lives = 20;
+                this.score = 0;
+                this.wave = 0;
+                this.autoWaveUnlocked = false;
+                this.autoWaveTimer = 15;
+                this.alertedEnemyTypes = new Set(['WORKER']);
+                this.grid = Array(GRID_ROWS).fill(null).map(() => Array(GRID_COLS).fill(0));
+                this.towers = [];
+                this.ants = [];
+                this.bullets = [];
+                this.particles = [];
+                this.spawnQueue = [];
+                this.isWaveInProgress = false;
+                this.selectedPlacedTower = null;
+
+                document.getElementById('auto-wave-bar').classList.add('hidden');
+                document.getElementById('alert-new-enemy').classList.add('hidden');
+                document.getElementById('btn-start-wave').classList.remove('opacity-50', 'pointer-events-none');
+                this.recalculatePath();
+                this.updateUI();
+            }
+
+            // RENDERING CANVAS GRAPHICS
+            render() {
+                const cs = this.cellSize;
+                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+                // 1. Map Tiles & Subtle Grid Background
+                for (let r = 0; r < GRID_ROWS; r++) {
+                    for (let c = 0; c < GRID_COLS; c++) {
+                        this.ctx.fillStyle = (r + c) % 2 === 0 ? '#0f172a' : '#111827';
+                        this.ctx.fillRect(c * cs, r * cs, cs, cs);
+                    }
+                }
+
+                // Grid lines
+                this.ctx.strokeStyle = 'rgba(30, 41, 59, 0.4)';
+                this.ctx.lineWidth = 1;
+                for (let r = 0; r <= GRID_ROWS; r++) {
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(0, r * cs);
+                    this.ctx.lineTo(GRID_COLS * cs, r * cs);
+                    this.ctx.stroke();
+                }
+                for (let c = 0; c <= GRID_COLS; c++) {
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(c * cs, 0);
+                    this.ctx.lineTo(c * cs, GRID_ROWS * cs);
+                    this.ctx.stroke();
+                }
+
+                // 2. Draw Ground Path Guide Line
+                if (this.currentPath.length > 0) {
+                    this.ctx.strokeStyle = 'rgba(234, 179, 8, 0.12)';
+                    this.ctx.lineWidth = cs * 0.45;
+                    this.ctx.lineCap = 'round';
+                    this.ctx.lineJoin = 'round';
+                    this.ctx.beginPath();
+                    this.currentPath.forEach((pt, idx) => {
+                        const px = (pt.c + 0.5) * cs;
+                        const py = (pt.r + 0.5) * cs;
+                        if (idx === 0) this.ctx.moveTo(px, py);
+                        else this.ctx.lineTo(px, py);
+                    });
+                    this.ctx.stroke();
+                }
+
+                // 3. Spawn Anthill & Target Portal Graphics
+                // Anthill (Left)
+                const sx = (this.startCell.c + 0.5) * cs;
+                const sy = (this.startCell.r + 0.5) * cs;
+                this.ctx.fillStyle = '#78350f';
+                this.ctx.beginPath();
+                this.ctx.arc(sx, sy, cs * 0.7, 0, Math.PI * 2);
+                this.ctx.fill();
+                this.ctx.fillStyle = '#451a03';
+                this.ctx.beginPath();
+                this.ctx.arc(sx, sy, cs * 0.4, 0, Math.PI * 2);
+                this.ctx.fill();
+
+                // Base Portal (Right)
+                const ex = (this.endCell.c + 0.5) * cs;
+                const ey = (this.endCell.r + 0.5) * cs;
+                this.ctx.fillStyle = '#991b1b';
+                this.ctx.beginPath();
+                this.ctx.arc(ex, ey, cs * 0.7, 0, Math.PI * 2);
+                this.ctx.fill();
+                this.ctx.fillStyle = '#ef4444';
+                this.ctx.beginPath();
+                this.ctx.arc(ex, ey, cs * 0.35, 0, Math.PI * 2);
+                this.ctx.fill();
+
+                // 4. Draw Towers
+                this.towers.forEach(t => t.draw(this.ctx, cs));
+
+                // 5. Draw Ants
+                this.ants.forEach(a => a.draw(this.ctx, cs));
+
+                // 6. Draw Bullets & Lasers
+                this.bullets.forEach(b => b.draw(this.ctx, cs));
+
+                // 7. Draw Particles
+                this.particles.forEach(p => p.draw(this.ctx, cs));
+
+                // 8. Draw Hover Preview & Placement Validity
+                if (this.hoverCell && !this.isPaused) {
+                    const { r, c } = this.hoverCell;
+                    const valid = this.canPlaceTower(r, c);
+
+                    this.ctx.fillStyle = valid ? 'rgba(34, 197, 94, 0.25)' : 'rgba(239, 68, 68, 0.3)';
+                    this.ctx.fillRect(c * cs, r * cs, cs, cs);
+
+                    if (valid && this.selectedTowerType) {
+                        this.ctx.strokeStyle = 'rgba(56, 189, 248, 0.4)';
+                        this.ctx.fillStyle = 'rgba(56, 189, 248, 0.08)';
+                        this.ctx.lineWidth = 1.5;
+                        this.ctx.beginPath();
+                        this.ctx.arc((c + 0.5) * cs, (r + 0.5) * cs, this.selectedTowerType.range * cs, 0, Math.PI * 2);
+                        this.ctx.fill();
+                        this.ctx.stroke();
+                    }
+                }
+
+                // 9. Selected Placed Tower Range Circle
+                if (this.selectedPlacedTower) {
+                    const t = this.selectedPlacedTower;
+                    this.ctx.strokeStyle = '#eab308';
+                    this.ctx.fillStyle = 'rgba(234, 179, 8, 0.08)';
+                    this.ctx.lineWidth = 2;
+                    this.ctx.beginPath();
+                    this.ctx.arc((t.c + 0.5) * cs, (t.r + 0.5) * cs, t.range * cs, 0, Math.PI * 2);
+                    this.ctx.fill();
+                    this.ctx.stroke();
+                }
+            }
+        }
+
+        // DETAILED TOWER CLASS
+        class Tower {
+            constructor(r, c, type, game) {
+                this.r = r;
+                this.c = c;
+                this.type = type;
+                this.game = game;
+                this.level = 1;
+
+                this.damage = type.damage;
+                this.range = type.range;
+                this.fireRate = type.fireRate;
+
+                this.cooldown = 0;
+                this.target = null;
+                this.angle = 0;
+                this.radarAngle = 0;
+            }
+
+            getUpgradeCost() {
+                return Math.floor(this.type.cost * 0.85 * this.level);
+            }
+
+            getSellValue() {
+                return Math.floor((this.type.cost + (this.level - 1) * (this.type.cost * 0.5)) * 0.6);
+            }
+
+            upgrade() {
+                if (this.game.gold >= this.getUpgradeCost()) {
+                    this.game.gold -= this.getUpgradeCost();
+                    this.level++;
+                    this.damage *= 1.3;
+                    this.range *= 1.08;
+                    audio.playBuild();
+                }
+            }
+
+            update(dt) {
+                this.cooldown -= dt;
+                this.radarAngle += dt * 3;
+
+                this.target = this.findTarget();
+
+                if (this.target) {
+                    const tx = (this.target.x + 0.5);
+                    const ty = (this.target.y + 0.5);
+                    this.angle = Math.atan2(ty - (this.r + 0.5), tx - (this.c + 0.5));
+
+                    if (this.cooldown <= 0) {
+                        this.shoot(this.target);
+                        this.cooldown = 1 / this.fireRate;
+                    }
+                }
+            }
+
+            findTarget() {
+                let bestAnt = null;
+                let maxProgress = -1;
+
+                this.game.ants.forEach(ant => {
+                    // Correct targeting rules for Air / Ground / Both
+                    if (this.type.type === 'AIR' && !ant.type.isFlying) return;
+                    if (this.type.type === 'GROUND' && ant.type.isFlying) return;
+
+                    const dist = Math.hypot(ant.x - this.c, ant.y - this.r);
+                    if (dist <= this.range) {
+                        const progress = ant.type.isFlying ? (ant.x / GRID_COLS) : ant.pathIndex;
+                        if (progress > maxProgress) {
+                            maxProgress = progress;
+                            bestAnt = ant;
+                        }
+                    }
+                });
+
+                return bestAnt;
+            }
+
+            shoot(target) {
+                audio.playShoot(this.type.id);
+
+                if (this.type.id === 'LASER') {
+                    target.takeDamage(this.damage * (1 / this.fireRate), this.type.id);
+                    this.game.bullets.push(new LaserBeam(this, target));
+                } else {
+                    this.game.bullets.push(new Bullet(this, target));
+                }
+            }
+
+            draw(ctx, cs) {
+                const px = (this.c + 0.5) * cs;
+                const py = (this.r + 0.5) * cs;
+
+                // Base Plate
+                ctx.fillStyle = '#1e293b';
+                ctx.fillRect(this.c * cs + 2, this.r * cs + 2, cs - 4, cs - 4);
+                ctx.strokeStyle = this.type.color;
+                ctx.lineWidth = 1.5;
+                ctx.strokeRect(this.c * cs + 2, this.r * cs + 2, cs - 4, cs - 4);
+
+                // Circular Turret Base
+                ctx.fillStyle = '#334155';
+                ctx.beginPath();
+                ctx.arc(px, py, cs * 0.38, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Rotating Cannon / Weapon Turret
+                ctx.save();
+                ctx.translate(px, py);
+                ctx.rotate(this.angle);
+
+                ctx.fillStyle = this.type.color;
+                ctx.fillRect(0, -cs * 0.1, cs * 0.45, cs * 0.2);
+
+                ctx.beginPath();
+                ctx.arc(0, 0, cs * 0.25, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+
+                // Upgrade stars display
+                if (this.level > 1) {
+                    ctx.fillStyle = '#f59e0b';
+                    ctx.font = '10px sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('★' + this.level, px, py - cs * 0.45);
+                }
+            }
+        }
+
+        // DETAILED ANT SPRITE CLASS
+        class Ant {
+            constructor(type, startCell, endCell, path, game) {
+                this.type = type;
+                this.game = game;
+                this.startCell = startCell;
+                this.endCell = endCell;
+
+                // Health scaling & Speed scaling based on difficulty setting
+                const waveFactor = 1 + (game.wave - 1) * 0.14;
+                const lateWaveHpFactor = 1 + Math.floor(game.wave / 10) * 0.2;
+                const lateWaveSpeedFactor = 1 + Math.floor(game.wave / 10) * 0.05;
+                this.maxHp = type.baseHp * waveFactor * lateWaveHpFactor * game.difficulty.hpMult;
+                this.hp = this.maxHp;
+                this.speed = type.speed * (game.difficulty.speedMult || 1.0) * lateWaveSpeedFactor;
+                this.isFlying = type.isFlying;
+
+                this.slowTimer = 0;
+                this.slowFactor = 1;
+                this.legFrame = 0;
+
+                this.reachedGoal = false;
+                this.isDead = false;
+
+                if (this.isFlying) {
+                    this.x = startCell.c;
+                    this.y = startCell.r;
+                    this.angle = Math.atan2(endCell.r - startCell.r, endCell.c - startCell.c);
+                } else {
+                    this.path = [...path];
+                    this.pathIndex = 0;
+                    this.x = startCell.c;
+                    this.y = startCell.r;
+                }
+            }
+
+            updatePath(newPath) {
+                if (this.isFlying) return;
+                let closestIdx = 0;
+                let minDist = Infinity;
+
+                newPath.forEach((pt, idx) => {
+                    const dist = Math.hypot(pt.c - this.x, pt.r - this.y);
+                    if (dist < minDist) {
+                        minDist = dist;
+                        closestIdx = idx;
+                    }
+                });
+
+                this.path = [...newPath];
+                this.pathIndex = closestIdx;
+            }
+
+            takeDamage(amount, type) {
+                this.hp -= amount;
+                audio.playHit();
+
+                for (let i = 0; i < 2; i++) {
+                    this.game.particles.push(new Particle(this.x + 0.5, this.y + 0.5, this.type.color));
+                }
+
+                if (type === 'FROST') {
+                    this.slowTimer = TOWER_TYPES.FROST.slowDuration;
+                    this.slowFactor = TOWER_TYPES.FROST.slowFactor;
+                }
+
+                if (this.hp <= 0) {
+                    this.isDead = true;
+                }
+            }
+
+            update(dt) {
+                if (this.slowTimer > 0) {
+                    this.slowTimer -= dt;
+                    if (this.slowTimer <= 0) this.slowFactor = 1;
+                }
+
+                const currentSpeed = this.speed * this.slowFactor;
+                this.legFrame += dt * currentSpeed * 15;
+
+                if (this.isFlying) {
+                    const dx = this.endCell.c - this.x;
+                    const dy = this.endCell.r - this.y;
+                    const dist = Math.hypot(dx, dy);
+
+                    if (dist < 0.2) {
+                        this.reachedGoal = true;
+                    } else {
+                        this.x += (dx / dist) * currentSpeed * dt;
+                        this.y += (dy / dist) * currentSpeed * dt;
+                    }
+                } else {
+                    if (this.pathIndex >= this.path.length) {
+                        this.reachedGoal = true;
+                        return;
+                    }
+
+                    const targetCell = this.path[this.pathIndex];
+                    const dx = targetCell.c - this.x;
+                    const dy = targetCell.r - this.y;
+                    const dist = Math.hypot(dx, dy);
+
+                    if (dist < 0.1) {
+                        this.pathIndex++;
+                    } else {
+                        this.angle = Math.atan2(dy, dx);
+                        this.x += (dx / dist) * currentSpeed * dt;
+                        this.y += (dy / dist) * currentSpeed * dt;
+                    }
+                }
+            }
+
+            draw(ctx, cs) {
+                const px = (this.x + 0.5) * cs;
+                const py = (this.y + 0.5) * cs;
+                const r = cs * this.type.size;
+
+                ctx.save();
+                ctx.translate(px, py);
+                if (this.angle !== undefined) ctx.rotate(this.angle);
+
+                const color = this.slowTimer > 0 ? '#93c5fd' : this.type.color;
+
+                // Moving Legs Animation
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 1.2;
+                const legOffset = Math.sin(this.legFrame) * 0.2;
+
+                for (let i = -1; i <= 1; i++) {
+                    ctx.beginPath();
+                    ctx.moveTo(0, i * r * 0.4);
+                    ctx.lineTo(-r * 1.1, i * r * 0.8 + legOffset * r);
+                    ctx.moveTo(0, i * r * 0.4);
+                    ctx.lineTo(r * 1.1, i * r * 0.8 - legOffset * r);
+                    ctx.stroke();
+                }
+
+                // Detailed Ant Body (Abdomen, Thorax, Head)
+                ctx.fillStyle = color;
+
+                // Abdomen
+                ctx.beginPath();
+                ctx.arc(-r * 0.8, 0, r * 0.65, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Thorax
+                ctx.beginPath();
+                ctx.arc(0, 0, r * 0.45, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Head & Antennae
+                ctx.beginPath();
+                ctx.arc(r * 0.7, 0, r * 0.4, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.beginPath();
+                ctx.moveTo(r * 0.8, -r * 0.2);
+                ctx.lineTo(r * 1.4, -r * 0.6);
+                ctx.moveTo(r * 0.8, r * 0.2);
+                ctx.lineTo(r * 1.4, r * 0.6);
+                ctx.stroke();
+
+                // Flapping Wings for Flying Ants
+                if (this.isFlying) {
+                    ctx.fillStyle = 'rgba(224, 242, 254, 0.75)';
+                    const wingSpread = Math.sin(this.legFrame * 2) * 0.3;
+                    ctx.beginPath();
+                    ctx.ellipse(0, -r * 0.8, r * 0.35, r * 1.1, Math.PI / 4 + wingSpread, 0, Math.PI * 2);
+                    ctx.ellipse(0, r * 0.8, r * 0.35, r * 1.1, -Math.PI / 4 - wingSpread, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                ctx.restore();
+
+                // HP Bar Above Head
+                if (this.hp < this.maxHp) {
+                    const barW = cs * 0.8;
+                    const barH = 3;
+                    const hpPct = Math.max(0, this.hp / this.maxHp);
+
+                    ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
+                    ctx.fillRect(px - barW / 2, py - r - 7, barW, barH);
+                    ctx.fillStyle = hpPct > 0.5 ? '#22c55e' : (hpPct > 0.2 ? '#eab308' : '#ef4444');
+                    ctx.fillRect(px - barW / 2, py - r - 7, barW * hpPct, barH);
+                }
+            }
+        }
+
+        // BULLET & LASER
+        class Bullet {
+            constructor(tower, target) {
+                this.tower = tower;
+                this.target = target;
+                this.x = tower.c + 0.5;
+                this.y = tower.r + 0.5;
+                this.speed = tower.type.bulletSpeed;
+                this.damage = tower.damage;
+                this.color = tower.type.bulletColor;
+                this.destroyed = false;
+            }
+
+            update(dt) {
+                if (this.target.isDead || this.target.reachedGoal) {
+                    this.destroyed = true;
+                    return;
+                }
+
+                const tx = this.target.x + 0.5;
+                const ty = this.target.y + 0.5;
+                const dx = tx - this.x;
+                const dy = ty - this.y;
+                const dist = Math.hypot(dx, dy);
+
+                if (dist < 0.3) {
+                    this.target.takeDamage(this.damage, this.tower.type.id);
+                    this.destroyed = true;
+                } else {
+                    this.x += (dx / dist) * this.speed * dt;
+                    this.y += (dy / dist) * this.speed * dt;
+                }
+            }
+
+            draw(ctx, cs) {
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x * cs, this.y * cs, cs * 0.12, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        class LaserBeam {
+            constructor(tower, target) {
+                this.tower = tower;
+                this.target = target;
+                this.destroyed = false;
+                this.life = 0.08;
+            }
+
+            update(dt) {
+                this.life -= dt;
+                if (this.life <= 0) this.destroyed = true;
+            }
+
+            draw(ctx, cs) {
+                const sx = (this.tower.c + 0.5) * cs;
+                const sy = (this.tower.r + 0.5) * cs;
+                const tx = (this.target.x + 0.5) * cs;
+                const ty = (this.target.y + 0.5) * cs;
+
+                ctx.strokeStyle = '#c084fc';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.moveTo(sx, sy);
+                ctx.lineTo(tx, ty);
+                ctx.stroke();
+
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(sx, sy);
+                ctx.lineTo(tx, ty);
+                ctx.stroke();
+            }
+        }
+
+        // PARTICLES
+        class Particle {
+            constructor(x, y, color) {
+                this.x = x;
+                this.y = y;
+                this.color = color;
+                this.vx = (Math.random() - 0.5) * 3;
+                this.vy = (Math.random() - 0.5) * 3;
+                this.life = 0.3;
+                this.maxLife = 0.3;
+            }
+
+            update(dt) {
+                this.x += this.vx * dt;
+                this.y += this.vy * dt;
+                this.life -= dt;
+            }
+
+            draw(ctx, cs) {
+                ctx.fillStyle = this.color;
+                ctx.globalAlpha = Math.max(0, this.life / this.maxLife);
+                ctx.beginPath();
+                ctx.arc(this.x * cs, this.y * cs, cs * 0.08, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.globalAlpha = 1.0;
+            }
+        }
+
+        // START GAME ENGINE ON WINDOW LOAD
+        window.onload = () => {
+            const game = new Game();
+            game.start();
+        };
+    </script>
+</body>
+</html>
